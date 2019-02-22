@@ -3,6 +3,7 @@ package com.zh.mongodb;
 import com.alibaba.fastjson.JSONObject;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
+import com.zh.mongodb.dao.DeviceDao;
 import com.zh.mongodb.dao.GoodDao;
 import org.junit.Test;
 
@@ -227,11 +228,73 @@ public class CountGoodTest extends ReplicaSetBaseTest{
     public void doCount10(){
         connectDB();
         GoodDao goodDao = new GoodDao();
-        Iterable results = goodDao.aggregate().match("{avg:{$avg:'$shop_price'}}").group("{_id:'$cat_id'}").sort("avg:1").results();
+        //字符串查询
+//        Iterable results = goodDao.aggregate().group("{_id:'$cat_id',avg:{$avg:'$shop_price'}}").sort("avg:1").results();
+//        Iterator iterator = results.iterator();
+//        while (iterator.hasNext()){
+//            System.out.println(iterator.next());
+//        }
+
+        //DBObject对象查询
+//        BasicDBObject basicDBObject = new BasicDBObject();
+//        basicDBObject.put("_id","$cat_id");
+//        basicDBObject.put("avg",new BasicDBObject("$avg","$shop_price"));
+//        BasicDBObject object=new BasicDBObject();
+//        object.put("avg",1);
+//        Iterable results = goodDao.aggregate().group(basicDBObject).sort(object).results();
+//        Iterator iterator = results.iterator();
+//        while (iterator.hasNext()){
+//            System.out.println(iterator.next());
+//        }
+
+        //字符串加DBObject查询
+//        BasicDBObject basicDBObject=new BasicDBObject();
+//        basicDBObject.put("avg",1);
+//        Iterable results = goodDao.aggregate().group("{_id:'$cat_id',avg:{$avg:'$shop_price'}}").sort(basicDBObject).results();
+//        Iterator iterator = results.iterator();
+//        while (iterator.hasNext()){
+//            System.out.println(iterator.next());
+//        }
+
+        //DBObject加字符串查询
+        BasicDBObject basicDBObject = new BasicDBObject();
+        basicDBObject.put("_id","$cat_id");
+        basicDBObject.put("avg",new BasicDBObject("$avg","$shop_price"));
+        Iterable results = goodDao.aggregate().group(basicDBObject).sort("avg:1").results();
         Iterator iterator = results.iterator();
         while (iterator.hasNext()){
             System.out.println(iterator.next());
         }
         disconnectDB();
     }
+    //查询每个栏目下价格高于50元的商品数量
+    @Test
+    public void doCount11(){
+        connectDB();
+        GoodDao goodDao = new GoodDao();
+        Iterable results = goodDao.aggregate().match("{shop_price:{$gt:50}}").group("{_id:'$cat_id',sum:{$sum:1}}").results();
+        Iterator iterator = results.iterator();
+        while (iterator.hasNext()){
+            System.out.println(iterator.next());
+        }
+        disconnectDB();
+    }
+
+    @Test
+    public void doCount12(){
+        connectDB();
+        DeviceDao deviceDao = new DeviceDao();
+        //总设备
+        long count = deviceDao.count();
+        System.out.println(count);
+        //在线设备
+        long online = deviceDao.query().is("online", true).countFast();
+        System.out.println(online);
+        //离线设备
+        long unline = deviceDao.query().is("online", false).countFast();
+        System.out.println(unline);
+        disconnectDB();
+    }
+
+
 }
