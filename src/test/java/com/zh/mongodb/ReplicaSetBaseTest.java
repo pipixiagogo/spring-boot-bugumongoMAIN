@@ -23,7 +23,7 @@ public class ReplicaSetBaseTest {
 
 
             BuguConnection conn = BuguFramework.getInstance().createConnection();
-            conn.setServerList(serverList).setDatabase("catl").connect();
+            conn.setServerList(serverList).setDatabase("MyMongoDB").connect();
     //                .setUsername("test")
     //                .setPassword("test")
 

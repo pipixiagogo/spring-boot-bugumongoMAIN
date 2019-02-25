@@ -7,10 +7,7 @@ import com.zh.mongodb.dao.DeviceDao;
 import com.zh.mongodb.dao.GoodDao;
 import org.junit.Test;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class CountGoodTest extends ReplicaSetBaseTest{
     @Test
@@ -294,6 +291,153 @@ public class CountGoodTest extends ReplicaSetBaseTest{
         long unline = deviceDao.query().is("online", false).countFast();
         System.out.println(unline);
         disconnectDB();
+    }
+
+    @Test
+    public void testTime(){
+        Calendar date = Calendar.getInstance();
+        date.set(Calendar.MINUTE,0);
+        date.set(Calendar.SECOND, 0);
+        date.set(Calendar.MILLISECOND, 0);
+        System.out.println(date.getTime());
+    }
+
+    @Test
+    public void doCount13(){
+        connectDB();
+        DeviceDao deviceDao = new DeviceDao();
+        Iterable <DBObject>results = deviceDao.aggregate().match(deviceDao.query().
+                greaterThan("registDate", getStartTimeOfYear(2019))
+                .lessThan("registDate", getEndTimeOfYear(2019)))
+                .project("{yearMonthDay:{$dateToString:{format: '%Y-%m', date: '$registDate'}}}")
+                .group("{_id:'$yearMonthDay',sum:{$sum:1}}").results();
+        for(DBObject object:results){
+            String yearMonthDay = (String) object.get("_id");
+            Integer sum = (Integer) object.get("sum");
+            System.out.println(yearMonthDay+"---"+sum);
+        }
+        disconnectDB();
+    }
+    @Test
+    public void doCount14(){
+//        double a=0.1;
+//        double ceil = Math.ceil(a);
+//        System.out.println(ceil);
+        int base = 7;
+        int aim = 0;
+        int from = 0;
+        int[] inc = new int[]{0,0,0,2,6};
+        for( int i = 1; i < 8; i++ ){
+            base += inc[ (i - 1)%(inc.length) ];
+            aim += base;
+            //System.out.println(aim);
+            if(i==7){
+                System.out.println("i==7"+aim);
+            }else {
+                //System.out.println(aim);
+            }
+            from = aim;
+            System.out.println(from);
+        }
+    }
+    @Test
+    public void doCount15(){
+       // { "_id" : { "$oid" : "5c3300f3431bee16445c3e4b" },
+        // "state" : "USED", "deviceName" : "f30c8e5a68594e77a87b46be4a7bb0d1",
+        // "deviceSecret" : "U0LBIuJ31E1H", "rdbsn" : "pipixia",
+        // "upgradeStatus" : false, "bmusns" : "12345678|12345678|123456789",
+        // "successRecord" : { "$numberLong" : "0" }, "online" : false,
+        // "defaultGroup" : true,
+        // "rdbstatus" : { "error" : false, "flashRemain" : { "$numberLong" : "16909060" },
+        // "flashUsed" : { "$numberLong" : "185339150" },
+        // "updateTime" : { "$date" : 1548646510835 } },
+        // "registDate" : { "$date" : 1546846451961 },
+        // "configState" : "NORMAL", "restartStatus" : "RESTART_NORMAL",
+        // "cleanFlushStatus" : "CLEAN_NORMAL", "factoryCode" : "pi",
+        // "isAccordance" : true, "geographicPosition" : { }, "currentIp" : null,
+        // \"onlineTime" : null, "startConfigTime" : null, "lastIp" : "192.168.1.40",
+        // "lastOfflineTime" : { "$date" : 1550042185297 },
+       // 1550813269000
+        // "lastOnlineTime" : { "$date" : 1550041941973 }, "statusUpdateTime" : { "$date" : 1548646510835 }
+        connectDB();
+        DeviceDao deviceDao = new DeviceDao();
+        Iterable<DBObject> results =
+                deviceDao.aggregate()
+                        .match(deviceDao.query().is("online", false).existsField("lastOnlineTime"))
+                        //new Date减去$lastOfflineTime 的绝对值
+                        //$divide 返回 { $subtract:[ new Date(),'$lastOfflineTime' ] }除以(一天的毫秒数)86400 000的绝对值
+                        //$ceil 0.1--> 1.0
+                        .project("{'time':{$ceil:{$divide:[{$subtract:[new Date(),'$lastOfflineTime']},86400000]}}}").results();
+//                        .group("{_id:null,sum:{$sum:1}}");
+        for(DBObject object:results){
+            long sum = Double.valueOf(object.get("time").toString()).longValue();
+            System.out.println(sum);
+        }
+        long l = System.currentTimeMillis() - 1550042185297L;
+        System.out.println(l);
+
+//        Iterator iterator = results.iterator();
+//        while (iterator.hasNext()){
+//            System.out.println(iterator.next());
+//        }
+        disconnectDB();
+    }
+
+    @Test
+    public void doCount16(){
+        StringBuilder sb = new StringBuilder();
+        //{ 'num':
+        // {$switch:
+        // {branches:[
+        // {case :{$and:[ {$gt:['$time',0]},{$lte:['$time',7]} ]},then:7 },
+        // { case :{$and:[ {$gt:['$time',7]},{$lte:['$time',14]} ]},then:14 },
+        // { case :{$and:[ {$gt:['$time',14]},{$lte:['$time',21]} ]},then:21 },
+        // { case :{$and:[ {$gt:['$time',21]},{$lte:['$time',30]} ]},then:30 },
+        // { case :{$and:[ {$gt:['$time',30]},{$lte:['$time',45]} ]},then:45 },
+        // { case :{$and:[ {$gt:['$time',45]},{$lte:['$time',60]} ]},then:60 },
+        // ],default:75}} }
+        //switch执行一个指定的表达式并从控制中终端
+        sb.append("{ 'num':{$switch:{branches:[");
+        int base = 7;
+        int aim = 0;
+        int from = 0;
+        int[] inc = new int[]{0,0,0,2,6};
+        for( int i = 1; i < 8; i++ ){
+            base += inc[ (i - 1)%(inc.length) ];
+            aim += base;
+            if( i == 7 ){
+                //得出aim为60天
+                sb.append("],default:" + aim + "}} }");
+            }else {
+                //0-7,7-14,14-21,21-30,30-45
+                //then 返回aim
+                sb.append("{ case :{$and:[ {$gt:['$time',"+ from +"]},{$lte:['$time',"+ aim +"]} ]},then:"+ aim +" },");
+            }
+            from = aim;
+        }
+        System.out.println(sb.toString());
+    }
+    private Date getStartTimeOfYear(Integer year) {
+        Calendar yearStart = Calendar.getInstance();
+        yearStart.set( Calendar.YEAR,year );
+        yearStart.set( Calendar.MONTH,0 );
+        yearStart.set( Calendar.DATE,1 );
+        yearStart.set(Calendar.HOUR_OF_DAY, 0);
+        yearStart.set(Calendar.MINUTE, 0);
+        yearStart.set(Calendar.SECOND, 0);
+        yearStart.set(Calendar.MILLISECOND, 0);
+        return yearStart.getTime();
+    }
+    private Date getEndTimeOfYear(Integer year) {
+        Calendar yearEnd = Calendar.getInstance();
+        yearEnd.set( Calendar.YEAR,year + 1 );
+        yearEnd.set( Calendar.MONTH,0 );
+        yearEnd.set( Calendar.DATE,1 );
+        yearEnd.set(Calendar.HOUR_OF_DAY, 0);
+        yearEnd.set(Calendar.MINUTE, 0);
+        yearEnd.set(Calendar.SECOND, 0);
+        yearEnd.set(Calendar.MILLISECOND, -1);
+        return yearEnd.getTime();
     }
 
 
