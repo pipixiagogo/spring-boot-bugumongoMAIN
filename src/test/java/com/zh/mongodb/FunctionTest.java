@@ -1,5 +1,7 @@
 package com.zh.mongodb;
 
+import com.zh.mongodb.entity.People;
+import com.zh.mongodb.util.ResHelper;
 import org.junit.Test;
 
 import java.util.function.Function;
@@ -25,7 +27,20 @@ public class FunctionTest {
         return  apply.toString();
     }
 
+    @Test
+    public void testRes(){
+        ResHelper<People> peopleResHelper = returnRes();
+        People data = peopleResHelper.getData();
+        System.out.println(data);
 
+    }
+
+    public ResHelper<People> returnRes(){
+        People people=new People();
+        people.setAge(24);
+        people.setName("张三");
+        return ResHelper.success("",people);
+    }
 
 
 
